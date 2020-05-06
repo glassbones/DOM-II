@@ -1,8 +1,6 @@
 let d = document;
 
-//selecting things as well as creating the feedback element
-let imgs = d.getElementsByTagName("img");
-let navLink = d.querySelectorAll(".nav-link");
+//this is gonna be the feedback text in the top left
 let feedBack = d.createElement("p");
 //throw feedBack into the DOM
 d.body.prepend(feedBack);
@@ -11,23 +9,74 @@ feedBack.style.position = "fixed";
 feedBack.style.zIndex = "100";
 feedBack.style.top = "10%";
 feedBack.style.fontSize = "5rem";
-//feed updates the feedback innerhtml when called
+
+
+
+
+//feed() updates the feedback innerhtml when called
 //this timer ID is so we can override setTimeOut if it gets called b4 the timer completes
 let timerID;
 function feed(input){
-    if (input){feedBack.innerHTML = `feedback: ${input}`};
+    // checks for mouse wheel events
+    checkWheel(input);
+    //if a mousewheel event just got passed through this function dont let a scroll event through
+    if (isWheel && input === "scroll") {console.log(`sorry`); return } 
+
+    feedBack.innerHTML = `feedback: ${input}`;
+
     clearTimeout(timerID);
     timerID = setTimeout(()=>{ feedBack.innerHTML = `feedback: <mark>${input}</mark>`;
     d.querySelector(`mark`).style.background = `none`;
     d.querySelector(`mark`).style.color = `gainsboro`;
     }, 500);
+
 }
+
+//all this junk is me trying to seperate scrollwheel scrolling from bar scrolling
+let isWheel = false;
+let isWheelTimer;
+function checkWheel(input){
+    if (input.includes('wheel')){
+        isWheel = true;
+        clearTimeout(timerID);
+        isWheelTimer = setTimeout(()=>{isWheel = false }, 500);
+    }
+}
+
+
+
+
+
+
+
+
 //keydown event
 window.addEventListener('keydown', e => {feed(String.fromCharCode(e.keyCode))})
-//wheel event
-window.addEventListener('wheel', e => {e.wheelDeltaY > 0 ? feed("wheel-up"): feed("wheel-down");})//feed(String.fromCharCode(e.keyCode))})
-// load event
 
+//wheel event
+window.addEventListener('wheel', e => {
+    e.wheelDeltaY > 0 ? feed("wheel-up"): feed("wheel-down");
+})
+window.addEventListener('resize', e => {feed("windowResize")})
+
+//scroll
+window.addEventListener('scroll', e => { if (!isWheel) {feed("scroll")} })
+
+//select
+d.querySelector('textarea').addEventListener('select', e => {
+    const selection = e.target.value.substring(e.target.selectionStart, e.target.selectionEnd);  
+    feed(`selection:${selection}`);
+})
+
+//focus
+d.querySelector('textarea').addEventListener('focus', e => {e.target.innerHTML="event focus was just triggered"});
+d.querySelector('textarea').addEventListener('blur', e => {e.target.innerHTML="event blur was just triggered"});
+
+//click and dblclick
+window.addEventListener("click", e => {feed("singleclick")})
+window.addEventListener("dblclick", e => {feed("doubleclick")})
+
+// load event
 //create <p class ="loading-text">Loading image!</p>
 let loadingText = d.createElement('p');
 loadingText.className = "loading-text"
@@ -47,6 +96,7 @@ firstImg.addEventListener('load', e => {
     e.stopPropagation;
 });
 //disable all nav links cuz why not
+let navLink = d.querySelectorAll(".nav-link");
 navLink.forEach(el => {
     el.addEventListener('click', (e) => {
         e.preventDefault();
@@ -54,6 +104,7 @@ navLink.forEach(el => {
     });
 });
 //mouseEnter/Exit opacity changes for all images
+let imgs = d.getElementsByTagName("img");
 Array.from(imgs).forEach(el => {
     el.style.opacity = ".5";
     el.style.transition = '.5s';
@@ -68,3 +119,8 @@ Array.from(imgs).forEach(el => {
         }
     })
 });
+//selection document wide
+document.addEventListener("selectionchange", e => {
+    let selection = document.getSelection ? document.getSelection().toString() :  document.selection.createRange().toString() ;
+    feed(`selection: <mark>${selection}</mark>`);
+  })
